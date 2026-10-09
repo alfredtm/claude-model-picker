@@ -1,0 +1,12 @@
+{
+  "name": "alfredtm",
+  "owner": { "name": "Alfred Tovsen Mo", "url": "https://github.com/alfredtm" },
+  "description": "Claude Code mods by alfredtm.",
+  "plugins": [
+    {
+      "name": "model-picker",
+      "source": "./",
+      "description": "Pick the model with one keypress when a session opens, no /model needed."
+    }
+  ]
+}
