@@ -57,7 +57,7 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         <Text dimColor>
-          Model{model ? `: ${model}` : ''}. Press a digit to switch, or Esc to keep it.
+          Model{model ? `: ${model}` : ''}. Press a digit to switch.
         </Text>
         <Box gap={1}>
           {MODELS.map(choice => (

@@ -4,12 +4,12 @@ A [Claude Code](https://claude.com/claude-code) mod that lets you pick the model
 with one keypress the moment a session opens. No more typing `/model`.
 
 ```
-Model: claude-fable-5-1. Press a digit to switch, or Esc to keep it.
+Model: claude-fable-5-1. Press a digit to switch.
 1: Fable  2: Opus  3: Sonnet  4: Haiku  0: Keep
 ```
 
 Press a digit on the empty prompt and the mod runs `/model <alias>` for you.
-Press `0` or Esc to keep what you have. The band goes away either way.
+Press `0` to keep what you have. The band goes away either way.
 
 ## Install
 
@@ -25,7 +25,7 @@ The mod is active right away and in every session after.
 ## Use
 
 - The band appears above the prompt on every interactive start.
-- `1` to `4` switch the model. `0` or Esc keep the current one.
+- `1` to `4` switch the model. `0` keeps the current one.
 - `/pick-model` brings the band back later in the session.
 
 Headless runs (`claude -p`) never show it.
