@@ -1,11 +1,19 @@
 {
   "name": "model-picker",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Pick the model with one keypress when a session opens, no /model needed.",
   "author": { "name": "Alfred Tovsen Mo", "url": "https://github.com/alfredtm" },
   "homepage": "https://github.com/alfredtm/claude-model-picker",
   "repository": "https://github.com/alfredtm/claude-model-picker",
   "license": "MIT",
   "keywords": ["claude-code", "mod", "model", "picker"],
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "defaultModel": {
+      "type": "string",
+      "title": "Default model",
+      "description": "Model to switch to when a session opens, as /model takes it (opus, sonnet, a full id). Leave empty to keep whatever the session starts on.",
+      "required": false
+    }
+  }
 }

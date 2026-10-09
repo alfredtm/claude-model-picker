@@ -54,6 +54,37 @@ test('shows the picker above the prompt on an interactive start', async ($, on) 
   }
 })
 
+test('leaves the model alone on start when no default is set', async ($, on) => {
+  const ran: string[] = []
+  world(on, ran)
+  await start($)
+
+  expect(ran).toEqual([])
+})
+
+test('applies the default model on an interactive start', { options: { defaultModel: 'opus' } }, async ($, on) => {
+  const ran: string[] = []
+  world(on, ran)
+  await start($)
+
+  expect(ran).toEqual(['opus'])
+
+  // The band still shows, with the default marked, so a press can override it.
+  const ui = await $.ui.mount({ plugin: 'model-picker', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect((await ui.find({ key: 'opus' }))?.props.label).toBe('Opus (default)')
+  expect((await ui.find({ type: 'Text' }))?.text).toContain('opus')
+  await ui.press({ key: 'sonnet' })
+  expect(ran).toEqual(['opus', 'sonnet'])
+})
+
+test('does not apply the default on a headless start', { options: { defaultModel: 'opus' } }, async ($, on) => {
+  const ran: string[] = []
+  world(on, ran)
+  await $.session.start({ cwd: '/tmp', surface: null, isInteractive: false })
+
+  expect(ran).toEqual([])
+})
+
 test('stays quiet on a headless start', async ($, on) => {
   world(on, [])
   await $.session.start({ cwd: '/tmp', surface: null, isInteractive: false })

@@ -13,7 +13,12 @@ const MODELS = [
 const isShown = atom({ plugin: 'model-picker', key: 'isShown' } as const, false)
 const current = atom({ plugin: 'model-picker', key: 'current' } as const, '')
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  // The `defaultModel` option from /config (or settings.json `pluginConfigs`):
+  // what `/model` is run with on every interactive start. Empty means leave
+  // the session on whatever it opened with.
+  const defaultModel = typeof options.defaultModel === 'string' ? options.defaultModel.trim() : ''
+
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'pick-model',
@@ -23,6 +28,15 @@ export const register: Register = on => {
     if (e.isInteractive) {
       await update($, current, () => '')
       await update($, isShown, () => true)
+
+      if (defaultModel) {
+        try {
+          await $.command.run({ command: 'model', args: defaultModel })
+        } catch (error) {
+          $.ui.toast(`model-picker: default model ${defaultModel}: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      }
+
       void $.session.model().then(model => update($, current, () => model))
     }
 
@@ -57,14 +71,15 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         <Text dimColor>
-          Model{model ? `: ${model}` : ''}. Press a digit to switch.
+          Model{model ? `: ${model}` : ''}.
+          {defaultModel ? ` Default on start: ${defaultModel}.` : ''} Press a digit to switch.
         </Text>
         <Box gap={1}>
           {MODELS.map(choice => (
             <Button
               key={choice.value}
               hotkey={choice.hotkey}
-              label={choice.label}
+              label={choice.value === defaultModel ? `${choice.label} (default)` : choice.label}
               plain
               onPress={() => void pick(choice.value)}
             />

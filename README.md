@@ -30,6 +30,32 @@ The mod is active right away and in every session after.
 
 Headless runs (`claude -p`) never show it.
 
+## Default model
+
+Set a model the mod switches to on every interactive start, before you press
+anything. Handy when something else (managed settings, say) resets the model
+between sessions.
+
+Open `/config`, find **Default model** under model-picker and enter whatever
+`/model` accepts: `opus`, `sonnet`, a full id like `claude-opus-5-5`. Or put it
+in `~/.claude/settings.json` by hand:
+
+```json
+{
+  "pluginConfigs": {
+    "model-picker@alfredtm": {
+      "options": { "defaultModel": "opus" }
+    }
+  }
+}
+```
+
+(The key is the plugin's name as `claude plugin list` prints it; a
+`--plugin-dir` checkout is plain `model-picker`.)
+
+The band still shows, with the default marked, so a digit overrides it for
+the session. Leave the option empty to keep whatever the session opened on.
+
 ## Customise
 
 The choices live in one list at the top of `hooks/register.tsx`:
