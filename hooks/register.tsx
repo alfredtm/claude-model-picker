@@ -1,17 +1,27 @@
 import { atom, read, update } from 'claude-code'
-import type { Register } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 
-// The choices, in the order drawn. The hotkey is the digit that picks it
-// from an empty prompt; the value is what `/model <value>` takes.
-const MODELS = [
-  { hotkey: '1', label: 'Fable', value: 'fable' },
-  { hotkey: '2', label: 'Opus', value: 'opus' },
-  { hotkey: '3', label: 'Sonnet', value: 'sonnet' },
-  { hotkey: '4', label: 'Haiku', value: 'haiku' },
-] as const
+import { BUILT_INS, choicesFromSettings } from './choices'
 
 const isShown = atom({ plugin: 'model-picker', key: 'isShown' } as const, false)
 const current = atom({ plugin: 'model-picker', key: 'current' } as const, '')
+const choices = atom({ plugin: 'model-picker', key: 'choices' } as const, BUILT_INS)
+
+// The band's models from the settings file: the built-ins plus the
+// model rows its modelPicker carries — the same rows /model shows, so
+// whatever keeps them there (a hand-edited lineup, intility-inference
+// with the GLM models) rides the band with a digit each. Read once a
+// session and on /pick-model, never on render — that happens at every
+// prompt. A fault leaves the band exactly as it was.
+async function readChoices($: EngineInterface): Promise<void> {
+  try {
+    const home = await $.env.get('HOME')
+    if (home === undefined) return
+    const dir = (await $.env.get('CLAUDE_CONFIG_DIR')) ?? `${home}/.claude`
+    const text = await $.fs.read(`${dir}/settings.json`)
+    await update($, choices, () => choicesFromSettings(text))
+  } catch {}
+}
 
 export const register: Register = (on, options) => {
   // The `defaultModel` option from /config (or settings.json `pluginConfigs`):
@@ -26,6 +36,7 @@ export const register: Register = (on, options) => {
     })
 
     if (e.isInteractive) {
+      await readChoices($)
       await update($, current, () => '')
       await update($, isShown, () => true)
 
@@ -44,6 +55,7 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: 'pick-model' }, async $ => {
+    await readChoices($)
     const model = await $.session.model()
     await update($, current, () => model)
     await update($, isShown, () => true)
@@ -75,7 +87,7 @@ export const register: Register = (on, options) => {
           {defaultModel ? ` Default on start: ${defaultModel}.` : ''} Press a digit to switch.
         </Text>
         <Box gap={1}>
-          {MODELS.map(choice => (
+          {(await read($, choices)).map(choice => (
             <Button
               key={choice.value}
               hotkey={choice.hotkey}

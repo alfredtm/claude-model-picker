@@ -1,6 +1,6 @@
 {
   "name": "model-picker",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Pick the model with one keypress when a session opens, no /model needed.",
   "author": { "name": "Alfred Tovsen Mo", "url": "https://github.com/alfredtm" },
   "homepage": "https://github.com/alfredtm/claude-model-picker",

@@ -21,9 +21,25 @@ const PICK: CommandRunInput = {
   presentation: { isFullscreen: false, columns: 100 },
 }
 
-// The world beneath the mod: a session on Fable, a registry that accepts
-// the command, and a `/model` that records what it was asked for.
-const world = (on: On, ran: string[]) => {
+const HOME = '/home/u'
+
+// intility-inference's rows, as its daemon writes them into
+// settings.json's modelPicker — GLM beside the Claude models.
+const GLM_SETTINGS = JSON.stringify({
+  env: { ANTHROPIC_BASE_URL: 'http://127.0.0.1:8793' },
+  modelPicker: {
+    options: [
+      { model: 'glm-5-3-flash', label: 'GLM-5.3 Flash Beta', description: 'Intility Inference — glm-5-3-flash', behavesAs: 'claude-sonnet-5' },
+      { model: 'glm-5-3', label: 'GLM-5.3 744B', description: 'Intility Inference — glm-5-3', behavesAs: 'claude-opus-5' },
+    ],
+  },
+})
+
+// The world beneath the mod: a session on Fable, a registry that
+// accepts the command, a `/model` that records what it was asked for,
+// and a settings file — `settings` is its text, a function of it (the
+// file changes), or nothing for no file at all.
+const world = (on: On, ran: string[], settings?: string | (() => string)) => {
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('session.model', () => ({ value: 'claude-fable-5-1' }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
@@ -35,6 +51,14 @@ const world = (on: On, ran: string[]) => {
   on('command.run', { command: 'model' }, (_$, e) => {
     ran.push(e.args)
     return { text: `Set model to ${e.args}` }
+  })
+  on('env.get', { name: 'HOME' }, () => ({ value: HOME }))
+  on('env.get', { name: 'CLAUDE_CONFIG_DIR' }, () => ({ value: undefined }))
+  on('fs.read', (_, { path }) => {
+    if (path !== `${HOME}/.claude/settings.json`) throw new Error(`unexpected read: ${path}`)
+    const text = typeof settings === 'function' ? settings() : settings
+    if (text === undefined) throw new Error('no settings file')
+    return { value: text }
   })
 }
 
@@ -133,4 +157,67 @@ test('/pick-model brings the band back', async ($, on) => {
   const { text } = await $.command.run(PICK)
   expect(text).toContain('shown')
   expect(await ui.findAll({ type: 'Button' })).toHaveLength(5)
+})
+
+// ── the settings file's model rows ─────────────────────────────────────
+
+test('the settings file has no model rows the band stays as it was', async ($, on) => {
+  const ran: string[] = []
+  world(on, ran, JSON.stringify({ env: {}, permissions: { allow: [] } }))
+  await start($)
+
+  const ui = await $.ui.mount({ plugin: 'model-picker', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect((await ui.findAll({ type: 'Button' })).map(b => b.key)).toEqual(['fable', 'opus', 'sonnet', 'haiku', 'keep'])
+})
+
+test('model rows land on the band beside the built-ins, a digit each', async ($, on) => {
+  const ran: string[] = []
+  world(on, ran, GLM_SETTINGS)
+  await start($)
+
+  const ui = await $.ui.mount({ plugin: 'model-picker', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  const buttons = await ui.findAll({ type: 'Button' })
+  expect(buttons.map(b => b.key)).toEqual(['fable', 'opus', 'sonnet', 'haiku', 'glm-5-3-flash', 'glm-5-3', 'keep'])
+  expect(buttons[4]!.props.hotkey).toBe('5')
+  expect(buttons[5]!.props.hotkey).toBe('6')
+  expect((await ui.find({ key: 'glm-5-3' }))?.props.label).toBe('GLM-5.3 744B')
+
+  await ui.press({ key: 'glm-5-3' })
+  expect(ran).toEqual(['glm-5-3'])
+})
+
+test('a row replaces the built-ins when the lineup says so', async ($, on) => {
+  world(on, [], JSON.stringify({
+    modelPicker: { replaceBuiltInOptions: true, options: [{ model: 'glm-5-3', label: 'GLM 744B' }] },
+  }))
+  await start($)
+
+  const ui = await $.ui.mount({ plugin: 'model-picker', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  const buttons = await ui.findAll({ type: 'Button' })
+  expect(buttons.map(b => b.key)).toEqual(['glm-5-3', 'keep'])
+  expect(buttons[0]!.props.hotkey).toBe('1')
+})
+
+test('the band stops at nine — the digits run out', async ($, on) => {
+  const rows = Array.from({ length: 8 }, (_, i) => ({ model: `m-${i}` }))
+  world(on, [], JSON.stringify({ modelPicker: { options: rows } }))
+  await start($)
+
+  const ui = await $.ui.mount({ plugin: 'model-picker', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  const buttons = await ui.findAll({ type: 'Button' })
+  expect(buttons.map(b => b.key)).toEqual(['fable', 'opus', 'sonnet', 'haiku', 'm-0', 'm-1', 'm-2', 'm-3', 'm-4', 'keep'])
+})
+
+test('/pick-model rereads the settings — rows written since the start show', async ($, on) => {
+  let text = GLM_SETTINGS
+  world(on, [], () => text)
+  await start($)
+
+  const ui = await $.ui.mount({ plugin: 'model-picker', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  await ui.press({ key: 'keep' })
+  expect(await ui.findAll({ type: 'Button' })).toHaveLength(0)
+
+  text = JSON.stringify({ modelPicker: { options: [{ model: 'glm-5-3' }] } })
+  await $.command.run(PICK)
+  expect((await ui.findAll({ type: 'Button' })).map(b => b.key)).toEqual(['fable', 'opus', 'sonnet', 'haiku', 'glm-5-3', 'keep'])
 })

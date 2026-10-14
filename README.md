@@ -5,8 +5,11 @@ with one keypress the moment a session opens. No more typing `/model`.
 
 ```
 Model: claude-fable-5-1. Press a digit to switch.
-1: Fable  2: Opus  3: Sonnet  4: Haiku  0: Keep
+1: Fable  2: Opus  3: Sonnet  4: Haiku  5: GLM-5.3 Flash Beta  6: GLM-5.3 744B  0: Keep
 ```
+
+(The last two: the model rows another mod — intility-inference — keeps
+in the settings file. See [Customise](#customise).)
 
 Press a digit on the empty prompt and the mod runs `/model <alias>` for you.
 Press `0` to keep what you have. The band goes away either way.
@@ -58,12 +61,22 @@ the session. Leave the option empty to keep whatever the session opened on.
 
 ## Customise
 
-The choices live in one list at the top of `hooks/register.tsx`:
+Beside the four built-ins, the band carries every model row in the user
+`settings.json`'s `modelPicker.options` — the same rows `/model` shows,
+so whatever keeps them there rides the band with a digit of its own: a
+hand-edited lineup, or a mod that maintains one (intility-inference
+writes its GLM models there, and they appear beside the Claude models).
+`replaceBuiltInOptions: true` shows the rows alone. The rows are read
+when a session opens and when `/pick-model` is run, from the user
+settings file only, and the band stops at nine choices — `0` keeps —
+because the digits run out.
+
+The built-ins themselves live in one list at the top of
+`hooks/choices.ts`:
 
 ```ts
-const MODELS = [
+export const BUILT_INS: Choice[] = [
   { hotkey: '1', label: 'Fable', value: 'fable' },
-  { hotkey: '2', label: 'Opus', value: 'opus' },
   ...
 ]
 ```
